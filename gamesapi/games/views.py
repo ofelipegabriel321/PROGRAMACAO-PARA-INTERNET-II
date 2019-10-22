@@ -28,7 +28,7 @@ def game_list(request):
         # jogo inválido retorna 400
         return Response(game_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-@api_view(['GET', 'PUT', 'POST'])
+@api_view(['GET', 'PUT', 'DELETE'])
 def game_detail(request, id):
     # tenta pegar o jogo esse determinado id
     try:
@@ -56,5 +56,7 @@ def game_detail(request, id):
     
     # exclui o jogo e retorna 204
     elif request.method == 'DELETE':
-        game.delete()
+        game_serializer = GameSerializer(game)
+        if game_serializer.validate_delete(game):
+            game.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)

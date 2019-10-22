@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from games.models import Game
 from datetime import datetime
+from django.utils import timezone
 
 class GameSerializer(serializers.ModelSerializer):
     class Meta:
@@ -21,6 +22,6 @@ class GameSerializer(serializers.ModelSerializer):
     
     @staticmethod
     def validate_delete(game):
-        if game.release_data <= datetime.now():
+        if game.release_date <= timezone.make_aware(datetime.now(), timezone.get_current_timezone()):
             raise serializers.ValidationError("Um jogo já lançado não pode ser excluído.")
         return game
