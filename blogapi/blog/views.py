@@ -4,23 +4,28 @@ from .models import *
 from rest_framework.response import Response
 from rest_framework import status
 from django.http import Http404
-from .endpoints import *
 
 
 class JsonImporter(APIView):
 
     def post(self, request, format=None):
-        profiles = request.data['users']
         posts = request.data['posts']
         comments = request.data['comments']
+        profiles = request.data['users']
 
-        profile_serializer = ProfileSerializer(data=profiles, many=True)
-        post_serializer = PostSerializer(data=posts, many=True)
-        comment_serializer = CommentSerializer(data=comments, many=True)
-        
-        if profile_serializer.is_valid() and post_serializer.is_valid() and comment_serializer.is_valid():
+        for profile in profiles :
+            profile_serializer = ProfileSerializer(data=profile)
+            if profile_serializer.is_valid():
                 profile_serializer.save()
+
+        for post in posts:
+            post_serializer = PostSerializer(data=post)
+            if post_serializer.is_valid():
                 post_serializer.save()
+
+        for comment in comments:
+            comment_serializer = CommentSerializer(data=comment)
+            if comment_serializer.is_valid():
                 comment_serializer.save()
 
 
@@ -193,20 +198,16 @@ class ProfilePostsAndCommentsList(APIView):
             count_comments = 0
 
             for post in profile.posts.all():
-            count_posts += 1
-            for comment in post.comments.all():
-                count_comments += 1
+                count_posts += 1
+                for comment in post.comments.all():
+                    count_comments += 1
 
             profile_data['total_posts'] = count_posts
             profile_data['total_comments'] = count_comments
 
-            response += profile_data
+            response.append(profile_data)
 
         return Response(response)
-
-def change_path(end):
-    end['path'] = base_url +  end['path']
-    return end
 
 
 class EndpointsList(APIView):
@@ -223,8 +224,7 @@ class EndpointsList(APIView):
                 'posts-comments-detail': root_url + 'posts-comments/<int:pk>',
                 'comment-list': root_url + 'posts/<int:pk>/comments',
                 'comment-detail': root_url + 'posts/<int:post_pk>/comments/<int:comment_pk>',
-                'profile-posts-and-comments-list': root_url + 'profile-posts-and-comments',
-                'endpoints': root_url + 'endpoints'
+                'profile-posts-and-comments-list': root_url + 'profile-posts-and-comments'
         }
         
         return Response(data)
