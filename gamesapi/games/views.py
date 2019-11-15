@@ -1,9 +1,10 @@
-from rest_framework.parsers import JSONParser
-from rest_framework import status
-from rest_framework.decorators import api_view
 from rest_framework.response import Response
-from games.models import Game
-from games.serializers import GameSerializer
+from rest_framework import generics
+from rest_framework.views import APIView
+from rest_framework import status
+from rest_framework.reverse import reverse
+from games.models import *
+from games.serializers import *
 
 class GameCategoryList(generics.ListCreateAPIView):
     queryset = GameCategory.objects.all()
@@ -44,6 +45,14 @@ class ScoreDetail(generics.RetrieveUpdateDestroyAPIView):
     queryset = Score.objects.all()
     serializer_class = ScoreSerializer
     name = 'score-detail'
+
+class ApiRoot(generics.GenericAPIView):
+    name = 'api-root'
+    def get(self, request, *args, **kwargs):
+        return Response({'players': reverse(viewname=PlayerList.name, request=request),
+                         'game-categories': reverse(viewname=GameCategoryList.name, request=request),
+                         'games': reverse(viewname=GameList.name, request=request),
+                         'scores': reverse(viewname=ScoreList.name, request=request)})
 
 '''
 @api_view(['GET', 'POST'])
