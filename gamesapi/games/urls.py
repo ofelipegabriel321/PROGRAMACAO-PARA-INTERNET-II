@@ -1,5 +1,6 @@
 from django.urls import path, include
 from games import views
+from rest_framework.authtoken.views import obtain_auth_token
 
 urlpatterns = [
     path('games/', views.GameList.as_view(), name=views.GameList.name),
@@ -14,4 +15,6 @@ urlpatterns = [
     path('users/<int:pk>/', views.UserDetail.as_view(), name=views.UserDetail.name),
     path('api-auth/', include('rest_framework.urls')),
     path('', views.ApiRoot.as_view(), name=views.ApiRoot.name),
+    path('api-token-auth/', obtain_auth_token),
+    path('api-token-auth2/', views.CustomAuthToken.as_view()),
 ]

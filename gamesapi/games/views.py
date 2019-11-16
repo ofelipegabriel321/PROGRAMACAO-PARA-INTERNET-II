@@ -3,6 +3,9 @@ from rest_framework import generics
 from rest_framework.views import APIView
 from rest_framework import status
 from rest_framework.reverse import reverse
+from rest_framework.throttling import ScopedRateThrottle
+from rest_framework.authtoken.views import ObtainAuthToken
+from rest_framework.authtoken.models import Token
 from games.models import *
 from games.serializers import *
 from games.permissions import *
@@ -13,20 +16,30 @@ class UserList(generics.ListAPIView):
     serializer_class = UserSerializer
     name = 'user-list'
 
+    permission_classes = (permissions.IsAuthenticated,)
+
 class UserDetail(generics.RetrieveAPIView):
     queryset = User.objects.all()
     serializer_class = UserSerializer
     name = 'user-detail'
+
+    permission_classes = (permissions.IsAuthenticated, permissions.IsAdminUser,)
 
 class GameCategoryList(generics.ListCreateAPIView):
     queryset = GameCategory.objects.all()
     serializer_class = GameCategorySerializer
     name = 'gamecategory-list'
 
+    throttle_scope = 'game-categories'
+    throttle_classes = (ScopedRateThrottle,)
+
 class GameCategoryDetail(generics.RetrieveUpdateDestroyAPIView):
     queryset = GameCategory.objects.all()
     serializer_class = GameCategorySerializer
     name = 'gamecategory-detail'
+
+    throttle_scope = 'game-categories'
+    throttle_classes = (ScopedRateThrottle,)
 
 class GameList(generics.ListCreateAPIView):
     queryset = Game.objects.all()
@@ -72,6 +85,16 @@ class ApiRoot(generics.GenericAPIView):
                          'games': reverse(viewname=GameList.name, request=request),
                          'scores': reverse(viewname=ScoreList.name, request=request),
                          'users': reverse(UserList.name, request=request),})
+
+class CustomAuthToken(ObtainAuthToken):
+    def post(self, request, *args, **kwargs):
+        serializer = self.serializer_class(data=request.data, context={'request': request})
+        serializer.is_valid(raise_exception=True)
+        user = serializer.validated_data['user']
+        token, created = Token.objects.get_or_create(user=user)
+        return Response({'token': token.key,
+                         'user_id': user.pk,
+                         'email': user.email})
 
 '''
 @api_view(['GET', 'POST'])
