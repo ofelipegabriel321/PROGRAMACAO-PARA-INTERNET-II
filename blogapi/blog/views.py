@@ -1,19 +1,20 @@
+from rest_framework import generics
 from rest_framework.views import APIView
+from rest_framework.response import Response
 from .serializers import *
 from .models import *
-from rest_framework.response import Response
-from rest_framework import status
-from django.http import Http404
-
 
 class JsonImporter(APIView):
-
     def post(self, request, format=None):
         posts = request.data['posts']
         comments = request.data['comments']
         profiles = request.data['users']
 
-        for profile in profiles :
+        for profile in profiles:
+            print(profile)
+            user_serializer = UserSerializer(data=profile)
+            if user_serializer.is_valid():
+                user_serializer.save()
             profile_serializer = ProfileSerializer(data=profile)
             if profile_serializer.is_valid():
                 profile_serializer.save()
@@ -209,13 +210,17 @@ class ProfilePostsAndCommentsList(APIView):
 
         return Response(response)
 
+class UserList(generics.ListAPIView):
+    queryset = User.objects.all()
+    serializer_class = UserSerializer
+    name = 'user-list'
 
 class EndpointsList(APIView):
 
     def get(self, request, format=None):
         root_url = 'http://localhost:8000/'
         data = {
-                'jsonimporter': root_url + 'jsonimporter/',
+                'json-importer': root_url + 'json-importer/',
                 'profiles-list': root_url + 'profiles',
                 'profiles-detail': root_url + 'profiles/<int:pk>',
                 'profile-posts-list': root_url + 'profile-posts',
@@ -224,7 +229,8 @@ class EndpointsList(APIView):
                 'posts-comments-detail': root_url + 'posts-comments/<int:pk>',
                 'comment-list': root_url + 'posts/<int:pk>/comments',
                 'comment-detail': root_url + 'posts/<int:post_pk>/comments/<int:comment_pk>',
-                'profile-posts-and-comments-list': root_url + 'profile-posts-and-comments'
+                'profile-posts-and-comments-list': root_url + 'profile-posts-and-comments',
+                'user-list': root_url + 'user-list/'
         }
         
         return Response(data)

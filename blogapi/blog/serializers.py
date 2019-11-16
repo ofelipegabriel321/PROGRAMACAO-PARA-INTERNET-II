@@ -5,20 +5,34 @@ from .models import *
 class AddressSerializer(serializers.ModelSerializer):
     class Meta:
         model = Address
-        fields = ['street', 'suite', 'city', 'zipcode']
+        fields = ['pk', 'street', 'suite', 'city', 'zipcode']
 
+class UserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ['pk', 'username', 'email']
+    
+    def create(self, validated_data):
+        print(validated_data)
+        user = User.objects.create(username=validated_data['username'],
+                                   email=validated_data['email'],
+                                   password='password12345')
+        return user
 
 class ProfileSerializer(serializers.ModelSerializer):
     address = AddressSerializer()
 
     class Meta:
         model = Profile
-        fields = ['name', 'email', 'address']
+        fields = ['pk', 'name', 'email', 'address']
 
     def create(self, validated_data):
-        address_data = validated_data.pop('address')
-        address = Address.objects.create(**address_data)
-        profile = Profile.objects.create(address=address ,**validated_data)
+        print(validated_data)
+        user = User.objects.get(email=validated_data['email'])
+        address_data = validated_data['address']
+        validated_data['address'] = Address.objects.create(**address_data)
+        profile = Profile.objects.create(user=user,
+                                         **validated_data)
         return profile
 
     def update(self, instance, validated_data):
@@ -38,13 +52,13 @@ class ProfileSerializer(serializers.ModelSerializer):
 class PostSerializer(serializers.ModelSerializer):
     class Meta:
         model = Post
-        fields = ['userId', 'title', 'body']
+        fields = ['pk', 'userId', 'title', 'body']
 
 
 class CommentSerializer(serializers.ModelSerializer):
     class Meta:
         model = Comment
-        fields = ['id', 'postId', 'name', 'email', 'body']
+        fields = ['pk', 'postId', 'name', 'email', 'body']
 
 
 class ProfilePostSerializer(serializers.ModelSerializer):
@@ -52,11 +66,11 @@ class ProfilePostSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Profile
-        fields = ['name', 'email', 'posts']
+        fields = ['pk', 'name', 'email', 'posts']
 
 class PostCommentSerializer(serializers.ModelSerializer):
     comments = CommentSerializer(many=True,read_only=True)
 
     class Meta:
         model = Post
-        fields = ['userId', 'title', 'body', 'comments']
+        fields = ['pk', 'userId', 'title', 'body', 'comments']
