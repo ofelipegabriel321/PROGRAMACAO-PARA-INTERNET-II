@@ -1,4 +1,4 @@
-from django.urls import path
+from django.urls import path, include
 from games import views
 
 urlpatterns = [
@@ -10,5 +10,8 @@ urlpatterns = [
     path('players/<int:pk>/', views.PlayerDetail.as_view(), name=views.PlayerDetail.name),
     path('scores/', views.ScoreList.as_view(), name=views.ScoreList.name),
     path('scores/<int:pl>/', views.ScoreDetail.as_view(), name=views.ScoreDetail.name),
-    path('', views.ApiRoot.as_view(), name=views.ApiRoot.name)
+    path('users/', views.UserList.as_view(), name=views.UserList.name),
+    path('users/<int:pk>/', views.UserDetail.as_view(), name=views.UserDetail.name),
+    path('api-auth/', include('rest_framework.urls')),
+    path('', views.ApiRoot.as_view(), name=views.ApiRoot.name),
 ]

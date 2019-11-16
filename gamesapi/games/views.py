@@ -5,6 +5,18 @@ from rest_framework import status
 from rest_framework.reverse import reverse
 from games.models import *
 from games.serializers import *
+from games.permissions import *
+
+
+class UserList(generics.ListAPIView):
+    queryset = User.objects.all()
+    serializer_class = UserSerializer
+    name = 'user-list'
+
+class UserDetail(generics.RetrieveAPIView):
+    queryset = User.objects.all()
+    serializer_class = UserSerializer
+    name = 'user-detail'
 
 class GameCategoryList(generics.ListCreateAPIView):
     queryset = GameCategory.objects.all()
@@ -20,11 +32,17 @@ class GameList(generics.ListCreateAPIView):
     queryset = Game.objects.all()
     serializer_class = GameSerializer
     name = 'game-list'
+    permission_classes = (permissions.IsAuthenticatedOrReadOnly,)
+
+    def perform_create(self, serializer):
+        serializer.save(owner=self.request.user)
 
 class GameDetail(generics.RetrieveUpdateDestroyAPIView):
     queryset = Game.objects.all()
     serializer_class = GameSerializer
     name = 'game-detail'
+
+    permission_classes = (permissions.IsAuthenticatedOrReadOnly, IsOwnerOrReadOnly,)
 
 class PlayerList(generics.ListCreateAPIView):
     queryset = Player.objects.all()
@@ -52,7 +70,8 @@ class ApiRoot(generics.GenericAPIView):
         return Response({'players': reverse(viewname=PlayerList.name, request=request),
                          'game-categories': reverse(viewname=GameCategoryList.name, request=request),
                          'games': reverse(viewname=GameList.name, request=request),
-                         'scores': reverse(viewname=ScoreList.name, request=request)})
+                         'scores': reverse(viewname=ScoreList.name, request=request),
+                         'users': reverse(UserList.name, request=request),})
 
 '''
 @api_view(['GET', 'POST'])

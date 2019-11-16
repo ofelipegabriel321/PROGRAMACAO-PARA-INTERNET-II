@@ -3,6 +3,18 @@ from games.models import *
 from datetime import datetime
 from django.utils import timezone
 
+class UserGameSerializer(serializers.HyperlinkedModelSerializer):
+    class Meta:
+        model = Game
+        fields = ('url','name')
+
+class UserSerializer(serializers.HyperlinkedModelSerializer):
+    games = UserGameSerializer(many=True, read_only=True)
+    
+    class Meta:
+        model = User
+        fields = ('url', 'pk','username','games')
+
 class GameCategorySerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = GameCategory
@@ -12,11 +24,13 @@ class GameCategorySerializer(serializers.HyperlinkedModelSerializer):
                   'games')
 
 class GameSerializer(serializers.ModelSerializer):
+    owner = serializers.ReadOnlyField(source='owner.username')
     game_category = serializers.SlugRelatedField(queryset=GameCategory.objects.all(),
                                                  slug_field='name')
     class Meta:
         model = Game
         fields = ('url',
+                  'owner',
                   'pk',
                   'game_category',
                   'name',
