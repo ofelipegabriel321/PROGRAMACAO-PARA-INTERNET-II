@@ -13,10 +13,9 @@ class UserSerializer(serializers.ModelSerializer):
         fields = ['pk', 'username', 'email']
     
     def create(self, validated_data):
-        print(validated_data)
-        user = User.objects.create(username=validated_data['username'],
-                                   email=validated_data['email'],
-                                   password='password12345')
+        user = User.objects.create_user(username=validated_data['username'],
+                                        email=validated_data['email'],
+                                        password='password12345')
         return user
 
 class ProfileSerializer(serializers.ModelSerializer):
@@ -27,7 +26,6 @@ class ProfileSerializer(serializers.ModelSerializer):
         fields = ['pk', 'name', 'email', 'address']
 
     def create(self, validated_data):
-        print(validated_data)
         user = User.objects.get(email=validated_data['email'])
         address_data = validated_data['address']
         validated_data['address'] = Address.objects.create(**address_data)

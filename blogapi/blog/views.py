@@ -3,6 +3,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from .serializers import *
 from .models import *
+from .permissions import *
 
 class JsonImporter(APIView):
     def post(self, request, format=None):
@@ -11,7 +12,6 @@ class JsonImporter(APIView):
         profiles = request.data['users']
 
         for profile in profiles:
-            print(profile)
             user_serializer = UserSerializer(data=profile)
             if user_serializer.is_valid():
                 user_serializer.save()
@@ -29,8 +29,29 @@ class JsonImporter(APIView):
             if comment_serializer.is_valid():
                 comment_serializer.save()
 
+class UserList(generics.ListCreateAPIView):
+    permission_classes = (
+        permissions.IsAuthenticatedOrReadOnly,
+    )
+    
+    queryset = User.objects.all()
+    serializer_class = UserSerializer
+    name = 'user-list'
+
+class UserDetail(generics.RetrieveUpdateDestroyAPIView):
+    permission_classes = (
+        permissions.IsAuthenticatedOrReadOnly,
+        permissions.IsAdminUser,
+    )
+    
+    queryset = User.objects.all()
+    serializer_class = UserSerializer
+    name = 'user-detail'
 
 class ProfileList(APIView):
+    permission_classes = (
+        permissions.IsAuthenticatedOrReadOnly,
+    )
 
     def get(self, request, format=None):
         profiles = Profile.objects.all()
@@ -49,7 +70,11 @@ class ProfileList(APIView):
 
 
 class ProfileDetail(APIView):
-
+    permission_classes = (
+        permissions.IsAuthenticatedOrReadOnly,
+        IsUserOrReadOnlyProfile,
+    )
+    
     def get_object(self, pk):
         try:
             return Profile.objects.get(pk=pk)
@@ -78,111 +103,95 @@ class ProfileDetail(APIView):
         return Response(status=status.HTTP_200_OK)
 
 
-class ProfilePostList(APIView):
+class ProfilePostList(generics.ListCreateAPIView):
+    permission_classes = (
+        permissions.IsAuthenticatedOrReadOnly,
+    )
 
-    def get(self, request, format=None):
-        profiles = Profile.objects.all()
-        profile_post_serializer = ProfilePostSerializer(profiles, many=True)
-        return Response(profile_post_serializer.data)
-
-
-class ProfilePostDetail(APIView):
-
-    def get_object(self, pk):
-        try:
-            return Profile.objects.get(pk=pk)
-        except Profile.DoesNotExist:
-            raise Http404
-
-    def get(self, request, pk, format=None):
-        profile = self.get_object(pk)
-        profile_post_serializer = ProfilePostSerializer(profile)
-        return Response(profile_post_serializer.data)
+    queryset = Profile.objects.all()
+    serializer_class = ProfilePostSerializer
+    name = 'profile-post-list'
 
 
-class PostCommentList(APIView):
+class ProfilePostDetail(generics.RetrieveAPIView):
+    permission_classes = (
+        permissions.IsAuthenticatedOrReadOnly,
+        IsUserOrReadOnlyProfile,
+    )
 
-    def get(self, request, format=None):
-        posts = Post.objects.all()
-        post_serializer = PostCommentSerializer(posts, many=True)
-        return Response(post_serializer.data)
-
-
-class PostCommentDetail(APIView):
-
-    def get_object(self, pk):
-        try:
-            return Post.objects.get(pk=pk)
-        except Post.DoesNotExist:
-            raise Http404
-
-    def get(self, request, pk, format=None):
-        post = self.get_object(pk)
-        post_serializer = PostCommentSerializer(post)
-        return Response(post_serializer.data)
+    queryset = Profile.objects.all()
+    serializer_class = ProfilePostSerializer
+    name = 'profile-detail'
 
 
-class CommentList(APIView):
-
-    def get_object(self, pk):
-        try:
-            return Post.objects.get(pk=pk)
-        except Post.DoesNotExist:
-            raise Http404
-
-    def get(self, request, pk, format=None):
-        post = self.get_object(pk)
-        comment_serializer = CommentSerializer(post.comments, many=True)
-        return Response(comment_serializer.data)
-
-    def post(self, request, pk, format=None):
-        comment = request.data
-        comment['postId'] = pk
-        comment_serializer = CommentSerializer(data=comment)
-        
-        if comment_serializer.is_valid():
-            comment_serializer.save()
-            return Response(comment_serializer.data, status=status.HTTP_201_CREATED)
-        
-        return Response(comment_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+class PostList(generics.ListCreateAPIView):
+    permission_classes = (
+        permissions.IsAuthenticatedOrReadOnly,
+    )
+    
+    queryset = Post.objects.all()
+    serializer_class = PostCommentSerializer
+    name = 'post-list'
 
 
-class CommentDetail(APIView):
+class PostDetail(generics.RetrieveUpdateDestroyAPIView):
+    permission_classes = (
+        permissions.IsAuthenticatedOrReadOnly,
+        IsUserOrReadOnlyPost,
+    )
 
-    def get_comment(self, post_pk, comment_pk):
-        try:
-            post = Post.objects.get(pk=post_pk)
-            try:
-                comment =  post.comments.get(pk=comment_pk)
-                return comment
-            except Comment.DoesNotExist:
-                raise Http404
-        except Post.DoesNotExist:
-            raise Http404
+    queryset = Post.objects.all()
+    serializer_class = PostCommentSerializer
+    name = 'post-detail'
 
-    def get(self, request, post_pk, comment_pk, format=None):
-        comment = self.get_comment(post_pk,comment_pk)
-        comment_serializer = CommentSerializer(comment)
-        return Response(comment_serializer.data)
 
-    def put(self, request, post_pk, comment_pk, format=None):
-        comment = self.get_comment(post_pk,comment_pk)
-        comment_data = request.data
-        comment_data['postId'] = post_pk
-        comment_serializer = CommentSerializer(comment, data=comment_data)
-        
-        if comment_serializer.is_valid():
-            comment_serializer.save()
-            return Response(comment_serializer.data)
-        
-        return Response(comment_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+class PostCommentList(generics.ListCreateAPIView):
+    permission_classes = (
+        permissions.IsAuthenticatedOrReadOnly,
+    )
+    
+    queryset = Post.objects.all()
+    serializer_class = PostCommentSerializer
+    name = 'post-comment-list'
 
-    def delete(self, request, post_pk, comment_pk, format=None):
-        comment_serializer = CommentSerializer(data=request.data)
-        comment = self.get_comment(post_pk,comment_pk)
-        comment.delete()
-        return Response(status=status.HTTP_200_OK)
 
+class PostCommentDetail(generics.RetrieveDestroyAPIView):
+    permission_classes = (
+        permissions.IsAuthenticatedOrReadOnly,
+        IsUserOrReadOnlyPost,
+    )
+
+    queryset = Post.objects.all()
+    serializer_class = PostCommentSerializer
+    name = 'post-comment-detail'
+
+
+class CommentList(generics.ListCreateAPIView):
+
+    permission_classes = (
+        permissions.IsAuthenticatedOrReadOnly,
+    )
+
+    serializer_class = CommentSerializer
+    name = 'comment-list'
+
+    def get_queryset(self):
+        post_pk = self.kwargs['pk']
+        return Comment.objects.filter(postId=post_pk)
+
+class CommentDetail(generics.RetrieveDestroyAPIView):
+    permission_classes = (
+        permissions.IsAuthenticatedOrReadOnly,
+        IsUserOrReadOnlyComment,
+    )
+    
+    serializer_class = CommentSerializer
+    name = 'comment-detail'
+    lookup_url_kwarg = 'comment_pk'
+
+    def get_queryset(self):
+        post_pk = self.kwargs['post_pk']
+        return Comment.objects.filter(postId=post_pk)
 
 class ProfilePostsAndCommentsList(APIView):
 
@@ -210,27 +219,17 @@ class ProfilePostsAndCommentsList(APIView):
 
         return Response(response)
 
-class UserList(generics.ListAPIView):
-    queryset = User.objects.all()
-    serializer_class = UserSerializer
-    name = 'user-list'
-
 class EndpointsList(APIView):
 
     def get(self, request, format=None):
         root_url = 'http://localhost:8000/'
         data = {
                 'json-importer': root_url + 'json-importer/',
-                'profiles-list': root_url + 'profiles',
-                'profiles-detail': root_url + 'profiles/<int:pk>',
-                'profile-posts-list': root_url + 'profile-posts',
-                'profile-posts-detail': root_url + 'profile-posts/<int:pk>',
-                'posts-comments-list': root_url + 'posts-comments',
-                'posts-comments-detail': root_url + 'posts-comments/<int:pk>',
-                'comment-list': root_url + 'posts/<int:pk>/comments',
-                'comment-detail': root_url + 'posts/<int:post_pk>/comments/<int:comment_pk>',
-                'profile-posts-and-comments-list': root_url + 'profile-posts-and-comments',
-                'user-list': root_url + 'user-list/'
+                'profiles-list': root_url + 'profiles/',
+                'profile-posts-list': root_url + 'profile-posts/',
+                'posts-comments-list': root_url + 'posts-comments/',
+                'profile-posts-and-comments-list': root_url + 'profile-posts-and-comments/',
+                'user-list': root_url + 'users'
         }
         
         return Response(data)
