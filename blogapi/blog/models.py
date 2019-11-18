@@ -11,7 +11,7 @@ class Address(models.Model):
         return '{} - {} - {} - {}'.format(self.street, self.suite, self.city, self.zipcode)
 
 class Profile(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='profiles')
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
     name = models.CharField(max_length=200)
     email = models.EmailField()
     address = models.OneToOneField(Address, on_delete=models.CASCADE, related_name='profile')
