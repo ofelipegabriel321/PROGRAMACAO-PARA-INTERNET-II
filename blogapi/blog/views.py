@@ -5,32 +5,36 @@ from rest_framework import status
 from rest_framework.authtoken.views import ObtainAuthToken
 from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.authtoken.models import Token
+from rest_framework.reverse import reverse
 from django.http import Http404
 from .serializers import *
 from .models import *
 from .permissions import *
 
 
-class EndpointsList(APIView):
+class ApiRoot(APIView):
 
-    def get(self, request, format=None):
-        root_url = 'http://localhost:8000/'
+    def get(self, request, *args, **kwargs):
+
         data = {
-                'json-importer': root_url + 'json-importer/',
-                'profiles-list': root_url + 'profiles/',
-                'profile-posts-list': root_url + 'profile-posts/',
-                'posts-list': root_url + 'posts/',
-                'posts-comments-list': root_url + 'posts-comments/',
-                'profile-posts-and-comments-list': root_url + 'profile-posts-and-comments/',
-                'user-list': root_url + 'users'
+            'api-token-auth': reverse('api-token-auth', request=request),
+            'json-importer': reverse('json-importer', request=request),
+            'users': reverse('user-list', request=request),
+            'profiles': reverse('profile-list', request=request),
+            'profiles-posts': reverse('profile-post-list', request=request),
+            'posts-comments': reverse('post-comment-list', request=request),
+            'posts': reverse('post-list', request=request),
+            'profile-posts-and-comments': reverse('profile-posts-and-comments', request=request)
         }
-        
-        return Response(data)
+
+        return Response(data, status=status.HTTP_200_OK)
 
 
 class CustomAuthToken(ObtainAuthToken):
     throttle_scope = 'api-token'
-    throttle_classes = [ScopedRateThrottle]
+    throttle_classes = (
+        ScopedRateThrottle
+    )
     
     def post(self, request, *args, **kwargs):
         serializer = self.serializer_class(data=request.data, context={'request': request})
@@ -83,7 +87,7 @@ class UserList(generics.ListCreateAPIView):
 class UserDetail(generics.RetrieveUpdateDestroyAPIView):
     permission_classes = (
         permissions.IsAuthenticatedOrReadOnly,
-        permissions.IsOwnerOrReadOnly,
+        IsOwnerOrReadOnly,
     )
     
     queryset = User.objects.all()
