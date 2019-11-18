@@ -20,7 +20,7 @@ urlpatterns = [
     path('posts-comments/<int:pk>/', PostCommentDetail.as_view(), name='post-comment-detail'),
     
     path('posts/', PostList.as_view(), name='post-list'),
-    path('posts/<int:pk>', PostDetail.as_view(), name='post-detail'),
+    path('posts/<int:pk>/', PostDetail.as_view(), name='post-detail'),
 
     path('posts/<int:pk>/comments/', CommentList.as_view(), name='comment-list'),
     path('posts/<int:post_pk>/comments/<int:comment_pk>/', CommentDetail.as_view(), name='comment-detail'),
