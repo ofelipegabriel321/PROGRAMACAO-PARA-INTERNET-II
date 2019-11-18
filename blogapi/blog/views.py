@@ -2,11 +2,50 @@ from rest_framework import generics
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
+from rest_framework.authtoken.views import ObtainAuthToken
+from rest_framework.throttling import ScopedRateThrottle
+from rest_framework.authtoken.models import Token
+from django.http import Http404
 from .serializers import *
 from .models import *
 from .permissions import *
 
+
+class EndpointsList(APIView):
+
+    def get(self, request, format=None):
+        root_url = 'http://localhost:8000/'
+        data = {
+                'json-importer': root_url + 'json-importer/',
+                'profiles-list': root_url + 'profiles/',
+                'profile-posts-list': root_url + 'profile-posts/',
+                'posts-list': root_url + 'posts/',
+                'posts-comments-list': root_url + 'posts-comments/',
+                'profile-posts-and-comments-list': root_url + 'profile-posts-and-comments/',
+                'user-list': root_url + 'users'
+        }
+        
+        return Response(data)
+
+
+class CustomAuthToken(ObtainAuthToken):
+    throttle_scope = 'api-token'
+    throttle_classes = [ScopedRateThrottle]
+    
+    def post(self, request, *args, **kwargs):
+        serializer = self.serializer_class(data=request.data, context={'request': request})
+        serializer.is_valid(raise_exception=True)
+        user = serializer.validated_data['user']
+        token, created = Token.objects.get_or_create(user=user)
+        return Response({
+            'token': token.key,
+            'user_id': user.pk,
+            'name': user.username
+        })
+
+
 class JsonImporter(APIView):
+    
     def post(self, request, format=None):
         posts = request.data['posts']
         comments = request.data['comments']
@@ -30,6 +69,7 @@ class JsonImporter(APIView):
             if comment_serializer.is_valid():
                 comment_serializer.save()
 
+
 class UserList(generics.ListCreateAPIView):
     permission_classes = (
         permissions.IsAuthenticatedOrReadOnly,
@@ -39,15 +79,17 @@ class UserList(generics.ListCreateAPIView):
     serializer_class = UserSerializer
     name = 'user-list'
 
+
 class UserDetail(generics.RetrieveUpdateDestroyAPIView):
     permission_classes = (
         permissions.IsAuthenticatedOrReadOnly,
-        permissions.IsAdminUser,
+        permissions.IsOwnerOrReadOnly,
     )
     
     queryset = User.objects.all()
     serializer_class = UserSerializer
     name = 'user-detail'
+
 
 class ProfileList(APIView):
     permission_classes = (
@@ -144,6 +186,7 @@ class PostCommentDetail(generics.RetrieveDestroyAPIView):
     queryset = Post.objects.all()
     serializer_class = PostCommentSerializer
     name = 'post-comment-detail'
+
 
 class PostList(APIView):
     permission_classes = (
@@ -244,6 +287,7 @@ class CommentDetail(generics.RetrieveDestroyAPIView):
         post_pk = self.kwargs['post_pk']
         return Comment.objects.filter(postId=post_pk)
 
+
 class ProfilePostsAndCommentsList(APIView):
 
     def get(self, request, format=None):
@@ -269,19 +313,3 @@ class ProfilePostsAndCommentsList(APIView):
             response.append(profile_data)
 
         return Response(response)
-
-class EndpointsList(APIView):
-
-    def get(self, request, format=None):
-        root_url = 'http://localhost:8000/'
-        data = {
-                'json-importer': root_url + 'json-importer/',
-                'profiles-list': root_url + 'profiles/',
-                'profile-posts-list': root_url + 'profile-posts/',
-                'posts-list': root_url + 'posts/',
-                'posts-comments-list': root_url + 'posts-comments/',
-                'profile-posts-and-comments-list': root_url + 'profile-posts-and-comments/',
-                'user-list': root_url + 'users'
-        }
-        
-        return Response(data)
